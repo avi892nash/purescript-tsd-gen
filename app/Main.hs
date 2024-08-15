@@ -36,7 +36,7 @@ processModules inputDir mOutputDir modules importAll = do
       Just outputDir -> do
         let moduleDir = outputDir </> T.unpack moduleName
         createDirectoryIfMissing True moduleDir
-        TL.writeFile (moduleDir </> "index.d.ts") (TB.toLazyText modTsd)
+        TL.writeFile (moduleDir </> T.unpack (T.replace (T.singleton '.') (T.singleton '_') moduleName) <> ".res") (TB.toLazyText modTsd)
       Nothing -> do -- write to stdout
         TL.putStr (TB.toLazyText modTsd)
 

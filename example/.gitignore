@@ -3,3 +3,4 @@ node_modules/
 output/
 user.mjs
 spago.lock
+.psci_modules/

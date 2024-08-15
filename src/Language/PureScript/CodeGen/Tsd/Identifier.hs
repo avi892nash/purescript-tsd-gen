@@ -12,8 +12,8 @@ module Language.PureScript.CodeGen.Tsd.Identifier
   , identToJs
   , properToJs
   , anyNameToJs
+  , mapToIdent
   , ensureNonKeyword
-  , appendWithDoubleDollars
   , toIdentifierName
   ) where
 import           Data.Char (isAlphaNum, isLetter)
@@ -56,8 +56,12 @@ isIdentifierName name = case T.uncons name of
 data IncludeKeywords = IncludeKeywords
                      | ExcludeKeywords
 
+
 newtype Ident (k :: IncludeKeywords) = Ident T.Text
   deriving (Eq,Ord,Show)
+
+mapToIdent :: (T.Text -> T.Text) -> Ident a -> Ident a
+mapToIdent fn (Ident x) = Ident $ fn x
 
 identToText :: Ident k -> T.Text
 identToText (Ident name) = JSC.anyNameToJs name
@@ -75,7 +79,7 @@ properToJs :: PS.ProperName a -> Ident 'ExcludeKeywords
 properToJs = Ident . JSC.properToJs
 
 anyNameToJs :: T.Text -> Ident 'ExcludeKeywords
-anyNameToJs = Ident . JSC.anyNameToJs
+anyNameToJs = Ident . T.replace "$" "_" . JSC.anyNameToJs
 
 -- |
 -- >>> ensureNonKeyword (Ident "foo")
@@ -86,9 +90,6 @@ ensureNonKeyword :: Ident 'IncludeKeywords -> Maybe (Ident 'ExcludeKeywords)
 ensureNonKeyword (Ident name) | JSC.nameIsJsReserved name = Nothing
                               | otherwise = Just (Ident name)
 
-
-appendWithDoubleDollars :: Identifier -> Identifier -> Identifier
-appendWithDoubleDollars (Ident name1) (Ident name2) = Ident (name1 <> "$$" <> name2)
 
 toIdentifierName :: Ident k -> Ident 'IncludeKeywords
 toIdentifierName (Ident name) = Ident name

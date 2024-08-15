@@ -23,13 +23,19 @@ import           Language.PureScript.TypeChecker.Kinds
 import           Language.PureScript.TypeChecker.Monad
 import           Language.PureScript.Types
 import           Prelude hiding (elem, lookup, notElem)
+import           Data.Char
+import Language.PureScript.CodeGen.Tsd.Identifier (mapToIdent)
+
+lowerFirstLetter :: T.Text -> T.Text
+lowerFirstLetter text = case T.uncons text of
+  Nothing -> text
+  Just (first, rest) -> T.cons (Data.Char.toLower first) rest
 
 data Field = Field { fieldLabel      :: !Label
                    , fieldType       :: !TSType
                    , fieldIsOptional :: !Bool
                    -- Other options: readonly
                    }
-           | NewSignature {- type parameters -} [Text] [TSType] TSType
            deriving (Eq,Show)
 
 mkField :: Label -> TSType -> Field
@@ -58,6 +64,7 @@ data TSType = TSAny
             | TSNamed {- type name -} TSTypeName {- arguments -} [TSType]
             | TSStringLit PSString
             | TSUnion [TSType] -- empty = never
+            | RSOption TSType
             | TSIntersection [TSType] -- empty = {} (all)
             | TSUnknown Text
             | TSCommented TSType Text
@@ -81,10 +88,10 @@ tsFunction :: forall f. Monad f => (SourceType -> TypeTranslationT f TSType) -> 
 tsFunction go args ret = do
   unbound <- asks ttcUnboundTyVars
   withReaderT (\r -> r { ttcBoundTyVars = ttcBoundTyVars r ++ unbound, ttcUnboundTyVars = [] })
-    $ TSFunction unbound <$> traverse go args <*> go ret
+    $ TSFunction [] <$> traverse go args <*> go ret
 
-pursTypeToTSType :: forall f. Monad f => SourceType -> TypeTranslationT f TSType
-pursTypeToTSType = go
+pursTypeToTSType :: forall f. Monad f => Bool ->SourceType -> TypeTranslationT f TSType
+pursTypeToTSType toLowerFirstChar = go
   where
     go :: SourceType -> TypeTranslationT f TSType
     go (TypeApp _ (TypeApp _ tcon a0) r)
@@ -116,8 +123,8 @@ pursTypeToTSType = go
       | tcon == tyFn0 = tsFunction go [] a0
       | tcon == tyEffect = tsFunction go [] a0
       | tcon == tyVariant = case rowToList a0 of
-          (pairs, _) -> TSUnion <$> traverse (\(RowListItem { rowListLabel = label, rowListType = ty }) -> (\ty' -> TSRecord [mkField "type" (TSStringLit $ runLabel label), mkField "value" ty']) <$> go ty) pairs
-      | tcon == tyNullable = (\ty -> TSUnion [ty, TSNull]) <$> go a0
+          (pairs, _) -> TSUnion <$> traverse (\(RowListItem { rowListLabel = label, rowListType = ty }) -> (\ty' -> TSRecord [mkField label ty']) <$> go ty) pairs
+      | tcon == tyNullable = RSOption <$> go a0
 #if MIN_VERSION_purescript(0, 15, 10)
     go ty@(ForAll _ _ name _kind inner _) = getKindsIn ty $ \kinds ->
 #else
@@ -129,7 +136,7 @@ pursTypeToTSType = go
     go (TypeVar _ name) = do
         isBound <- asks (\r -> List.elem name (ttcBoundTyVars r))
         if isBound
-          then pure (TSTyVar name)
+          then pure (TSTyVar $ "'" <> name)
           else pure (TSUnknown $ "type variable " <> name)
     go ty@(TypeConstructor _ _qName)
       | ty == tyString = pure TSString
@@ -162,8 +169,8 @@ pursTypeToTSType = go
           getModuleId <- asks ttcGetModuleId
           moduleId <- lift (lift (getModuleId moduleName))
           let tsTypeName = case moduleId of
-                             Nothing -> UnqualifiedTypeName $ JS.properToJs typeName
-                             Just moduleId' -> QualifiedTypeName moduleId' $ JS.toIdentifierName $ JS.properToJs typeName
+                             Nothing -> UnqualifiedTypeName $ mapToIdent (if toLowerFirstChar then lowerFirstLetter else id) $ JS.properToJs typeName
+                             Just moduleId' -> QualifiedTypeName moduleId' $ JS.toIdentifierName $  mapToIdent (if toLowerFirstChar then lowerFirstLetter else id) $ JS.properToJs typeName
           pure $ TSNamed tsTypeName []
         _ -> pure (TSUnknown $ T.pack $ show ty)
     go (ConstrainedType _ ct inner) = tsFunction go [constraintToType ct] inner
