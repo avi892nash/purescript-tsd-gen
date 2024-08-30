@@ -1,4 +1,4 @@
-name: Build and Publish ts-gen
+name: Build and Publish purs-tsd-gen
 
 on:
   push:
@@ -37,18 +37,18 @@ jobs:
         run: |
           if [ "${{ matrix.os }}" == "windows-latest" ]; then
             stack build --copy-bins --local-bin-path ./dist
-            mv ./dist/ts-gen.exe ./ts-gen-win.exe
+            mv ./dist/purs-tsd-gen.exe ./purs-tsd-gen-win.exe
           elif [ "${{ matrix.os }}" == "macos-latest" ]; then
             if [ "${{ matrix.architecture }}" == "x86_64" ]; then
               stack build --copy-bins --local-bin-path ./dist
-              mv ./dist/ts-gen ./ts-gen-macos-x86_64
+              mv ./dist/purs-tsd-gen ./purs-tsd-gen-macos-x86_64
             else
               stack build --copy-bins --local-bin-path ./dist
-              mv ./dist/ts-gen ./ts-gen-macos-arm64
+              mv ./dist/purs-tsd-gen ./purs-tsd-gen-macos-arm64
             fi
           else
             stack build --copy-bins --local-bin-path ./dist
-            mv ./dist/ts-gen ./ts-gen-linux
+            mv ./dist/purs-tsd-gen ./purs-tsd-gen-linux
           fi
         shell: bash
 
@@ -56,7 +56,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.os }}-${{ matrix.architecture }}-binary
-          path: ts-gen-*
+          path: purs-tsd-gen-*
 
   release:
     needs: build
@@ -85,9 +85,9 @@ jobs:
           name: windows-latest-x86_64-binary
           path: ./releases/
 
-      - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          npm version ${{ github.ref_name }}
-          npm publish
+      # - name: Publish to npm
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      #   run: |
+      #     npm version ${{ github.ref_name }}
+      #     npm publish

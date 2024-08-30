@@ -1,0 +1,14 @@
+{
+  "name": "ts-gen",
+  "version": "0.0.0",
+  "description": "tool to generate index.d.ts file for purescript repo",
+  "main":"index.js",
+  "bin": {
+    "ts-gen": "bin/ts-gen"
+  },
+  "scripts": {
+    "install": "node install.js"
+  },
+  "author": "Avinash",
+  "license": "MIT"
+}
