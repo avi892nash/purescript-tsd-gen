@@ -19,14 +19,37 @@ jobs:
             architecture: arm64
 
     steps:
+      - # We need a proper Git repository, but the checkout step will unpack a tarball instead of doing a clone
+        # if the Git version is less than 2.18.
+        name: "(Linux only) Install a newer version of Git"
+        if: "contains(matrix.os, 'ubuntu-latest')"
+        run: |
+          . /etc/os-release
+          echo deb http://deb.debian.org/debian "$VERSION_CODENAME"-backports main >> /etc/apt/sources.list
+          apt-get update && apt-get install -y git/"$VERSION_CODENAME"-backports
+
+      - # We need `gh` installed on the Linux version. Otherwise, release artifacts won't be uploaded.
+        name: "(Linux only) Install gh"
+        if: "contains(matrix.os, 'ubuntu-latest')"
+        run: |
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          apt-get update
+          apt-get install gh
+
       - uses: actions/checkout@v2
-
-      - name: Set up Haskell
-        uses: haskell/actions/setup@v1
+      - uses: "actions/setup-node@v2"
         with:
-          ghc-version: '9.2.8'  # Adjust to the version of GHC you need
-          cabal-version: '3.10.2' # Use the required Cabal version
+          node-version: "16"
 
+      - id: "haskell"
+        name: "(Non-Linux only) Install Haskell"
+        uses: "haskell/actions/setup@v1"
+        with:
+          enable-stack: true
+          stack-version: "${{ env.STACK_VERSION }}"
+          stack-no-global: true
       - name: Build Binary
         run: |
           if [ "${{ matrix.os }}" == "windows-latest" ]; then
