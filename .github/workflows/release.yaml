@@ -1,0 +1,69 @@
+name: Build and Publish
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Haskell
+        uses: haskell/actions/setup@v1
+        with:
+          ghc-version: '8.10.7' # or the version you need
+
+      - name: Build Binary
+        run: |
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            stack build --copy-bins --local-bin-path ./dist
+            mv ./dist/ts-gen.exe ./ts-gen-win.exe
+          elif [ "${{ matrix.os }}" == "macos-latest" ]; then
+            stack build --copy-bins --local-bin-path ./dist
+            mv ./dist/ts-gen ./ts-gen-macos
+          else
+            stack build --copy-bins --local-bin-path ./dist
+            mv ./dist/ts-gen ./ts-gen-linux
+          fi
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.os }}-binary
+          path: ts-gen-*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: ubuntu-latest-binary
+          path: ./releases/
+     
+      - uses: actions/download-artifact@v2
+        with:
+          name: macos-latest-binary
+          path: ./releases/
+       
+      - uses: actions/download-artifact@v2
+        with:
+          name: windows-latest-binary
+          path: ./releases/
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm version ${{ github.ref_name }}
+          npm publish
