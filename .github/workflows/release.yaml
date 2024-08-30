@@ -1,4 +1,4 @@
-name: Build and Publish
+name: Build and Publish ts-gen
 
 on:
   push:
@@ -11,6 +11,12 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        architecture: [x86_64, arm64]
+        exclude:
+          - os: windows-latest
+            architecture: arm64
+          - os: ubuntu-latest
+            architecture: arm64
 
     steps:
       - uses: actions/checkout@v2
@@ -18,7 +24,8 @@ jobs:
       - name: Set up Haskell
         uses: haskell/actions/setup@v1
         with:
-          ghc-version: '8.10.7' # or the version you need
+          ghc-version: '9.2.8'  # Adjust to the version of GHC you need
+          cabal-version: '3.10.2' # Use the required Cabal version
 
       - name: Build Binary
         run: |
@@ -26,8 +33,13 @@ jobs:
             stack build --copy-bins --local-bin-path ./dist
             mv ./dist/ts-gen.exe ./ts-gen-win.exe
           elif [ "${{ matrix.os }}" == "macos-latest" ]; then
-            stack build --copy-bins --local-bin-path ./dist
-            mv ./dist/ts-gen ./ts-gen-macos
+            if [ "${{ matrix.architecture }}" == "x86_64" ]; then
+              stack build --copy-bins --local-bin-path ./dist
+              mv ./dist/ts-gen ./ts-gen-macos-x86_64
+            else
+              stack build --copy-bins --local-bin-path ./dist
+              mv ./dist/ts-gen ./ts-gen-macos-arm64
+            fi
           else
             stack build --copy-bins --local-bin-path ./dist
             mv ./dist/ts-gen ./ts-gen-linux
@@ -36,7 +48,7 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.os }}-binary
+          name: ${{ matrix.os }}-${{ matrix.architecture }}-binary
           path: ts-gen-*
 
   release:
@@ -48,17 +60,22 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v2
         with:
-          name: ubuntu-latest-binary
+          name: ubuntu-latest-x86_64-binary
           path: ./releases/
      
       - uses: actions/download-artifact@v2
         with:
-          name: macos-latest-binary
+          name: macos-latest-x86_64-binary
           path: ./releases/
        
       - uses: actions/download-artifact@v2
         with:
-          name: windows-latest-binary
+          name: macos-latest-arm64-binary
+          path: ./releases/
+       
+      - uses: actions/download-artifact@v2
+        with:
+          name: windows-latest-x86_64-binary
           path: ./releases/
 
       - name: Publish to npm
