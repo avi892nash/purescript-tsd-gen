@@ -85,9 +85,9 @@ jobs:
           name: windows-latest-x86_64-binary
           path: ./releases/
 
-      # - name: Publish to npm
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      #   run: |
-      #     npm version ${{ github.ref_name }}
-      #     npm publish
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm version ${{ github.ref_name }}
+          npm publish
