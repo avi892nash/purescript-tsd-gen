@@ -22,7 +22,7 @@ jobs:
     steps:
 
       - uses: actions/checkout@v2
-      
+
       - id: "haskell"
         name: "(Non-Linux only) Install Haskell"
         uses: "haskell/actions/setup@v1"
@@ -52,7 +52,8 @@ jobs:
       - name: Upload Binary to GitHub Release 
         uses: actions/upload-release-asset@v1 
         if: github.ref_type == 'tag' 
-        with: upload_url: ${{ steps.create_release.outputs.upload_url }} 
-        asset_path: ./purs-tsd-gen-* 
-        asset_name: purs-tsd-gen-${{ matrix.os }}-${{ matrix.architecture }}
-        asset_content_type: application/octet-stream
+        with: 
+          upload_url: ${{ steps.create_release.outputs.upload_url }} 
+          asset_path: ./purs-tsd-gen-* 
+          asset_name: purs-tsd-gen-${{ matrix.os }}-${{ matrix.architecture }}
+          asset_content_type: application/octet-stream
