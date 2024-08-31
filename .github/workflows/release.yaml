@@ -22,10 +22,7 @@ jobs:
     steps:
 
       - uses: actions/checkout@v2
-      - uses: "actions/setup-node@v2"
-        with:
-          node-version: "16"
-
+      
       - id: "haskell"
         name: "(Non-Linux only) Install Haskell"
         uses: "haskell/actions/setup@v1"
@@ -52,42 +49,10 @@ jobs:
           fi
         shell: bash
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ matrix.os }}-${{ matrix.architecture }}-binary
-          path: purs-tsd-gen-*
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Download Artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: ubuntu-latest-x86_64-binary
-          path: ./releases/
-     
-      - uses: actions/download-artifact@v2
-        with:
-          name: macos-latest-x86_64-binary
-          path: ./releases/
-       
-      - uses: actions/download-artifact@v2
-        with:
-          name: macos-latest-arm64-binary
-          path: ./releases/
-       
-      - uses: actions/download-artifact@v2
-        with:
-          name: windows-latest-x86_64-binary
-          path: ./releases/
-
-      # - name: Publish to npm
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      #   run: |
-      #     npm version ${{ github.ref_name }}
-      #     npm publish
+      - name: Upload Binary to GitHub Release 
+        uses: actions/upload-release-asset@v1 
+        if: github.ref_type == 'tag' 
+        with: upload_url: ${{ steps.create_release.outputs.upload_url }} 
+        asset_path: ./purs-tsd-gen-* 
+        asset_name: purs-tsd-gen-${{ matrix.os }}-${{ matrix.architecture }}
+        asset_content_type: application/octet-stream
