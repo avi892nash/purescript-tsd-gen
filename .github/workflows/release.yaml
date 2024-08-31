@@ -87,10 +87,10 @@ jobs:
       - uses: softprops/action-gh-release@v1
         with:
           files: |
-            releases/windows-latest-x86_64-binary
-            releases/macos-latest-arm64-binary
-            releases/macos-latest-x86_64-binary
-            releases/ubuntu-latest-x86_64-binary
+            ./releases/windows-latest-x86_64-binary
+            ./releases/macos-latest-arm64-binary
+            ./releases/macos-latest-x86_64-binary
+            ./releases/ubuntu-latest-x86_64-binary
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # - name: Publish to npm
