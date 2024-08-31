@@ -84,7 +84,10 @@ jobs:
         with:
           name: windows-latest-x86_64-binary
           path: ./releases/
-
+      - name: Configure Git
+        run: |
+          git config --global user.name "Github Action"
+          git config --global user.emal "actions@github.com"
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
